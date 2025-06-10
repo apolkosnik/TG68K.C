@@ -12,6 +12,16 @@ Der TG68K.C ist ein IP Core fuer FPGAs. Er kann auf einfache Weise zwischen eine
 Es gibt inzwischen viele Projekte im Retrocomputer Bereich die diesen Core verwenden. Aus diesem Bereich gab es viele Rückmeldungen. So konnte der Core sehr gut weiter entwickelt werden. Ebenso konnten dadurch viele Bugs beseitigt werden. 
 Der Core legt keinen Wert auf Zyklusgenauigkeit. Der Core schont die FPGA Resourcen bei einer guten Ausführungsgeschwindigkeit.
 
+## Key Features of the TG68K:
+- **Configurable CPU modes**: 68000, 68010, or 68020 instruction sets
+- **Modular ALU** with optional hardware multiplier and barrel shifter
+- **Bit field unit** for 68020 bit field instructions
+- **Complete exception handling** including interrupts, traps, and bus errors
+- **Flexible memory interface** supporting both synchronous and asynchronous modes
+- **Microcode-based control** with extensive state machine for complex instructions
+
+The design is highly configurable through generic parameters, allowing you to optimize for different use cases (area vs. performance) by enabling/disabling features like hardware multiplication, barrel shifting, and bit field operations.
+
 <img width="1301" alt="tg68k-architecture-diagram" src="https://github.com/user-attachments/assets/1453c7c9-efd4-416a-be24-277585676ba5" />
 
 ## 1. **Architecture Diagram** (tg68k-architecture-diagram)
@@ -42,12 +52,3 @@ Details the hierarchical structure:
 - ALU sub-components and their functions
 - Interface signals between modules
 
-## Key Features of the TG68K:
-- **Configurable CPU modes**: 68000, 68010, or 68020 instruction sets
-- **Modular ALU** with optional hardware multiplier and barrel shifter
-- **Bit field unit** for 68020 bit field instructions
-- **Complete exception handling** including interrupts, traps, and bus errors
-- **Flexible memory interface** supporting both synchronous and asynchronous modes
-- **Microcode-based control** with extensive state machine for complex instructions
-
-The design is highly configurable through generic parameters, allowing you to optimize for different use cases (area vs. performance) by enabling/disabling features like hardware multiplication, barrel shifting, and bit field operations.
