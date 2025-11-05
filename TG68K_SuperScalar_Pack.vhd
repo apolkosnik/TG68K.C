@@ -128,6 +128,26 @@ package TG68K_SuperScalar_Pack is
     -- Free list for physical registers
     type free_list_t is array (0 to PHYS_REG_COUNT-1) of std_logic;
 
+    -- Array types for interfacing between components
+    type preg_array_t is array (0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
+    type rob_idx_array_t is array (0 to ISSUE_WIDTH-1) of integer range 0 to ROB_SIZE-1;
+    type data_array_t is array (0 to ISSUE_WIDTH-1) of std_logic_vector(31 downto 0);
+    type reg_array_t is array (0 to ISSUE_WIDTH-1) of std_logic_vector(3 downto 0);
+    type pc_array_t is array (0 to ISSUE_WIDTH-1) of std_logic_vector(31 downto 0);
+
+    type eu_preg_array_t is array (0 to EU_COUNT-1) of std_logic_vector(5 downto 0);
+    type eu_rob_idx_array_t is array (0 to EU_COUNT-1) of integer range 0 to ROB_SIZE-1;
+    type eu_data_array_t is array (0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
+    type eu_opcode_array_t is array (0 to EU_COUNT-1) of std_logic_vector(15 downto 0);
+    type eu_pc_array_t is array (0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
+
+    type prf_addr_array_t is array (0 to ISSUE_WIDTH*2-1) of std_logic_vector(5 downto 0);
+    type prf_data_array_t is array (0 to ISSUE_WIDTH*2-1) of std_logic_vector(31 downto 0);
+    type prf_read_array_t is array (0 to 7) of std_logic_vector(5 downto 0);
+    type prf_rdata_array_t is array (0 to 7) of std_logic_vector(31 downto 0);
+    type prf_write_array_t is array (0 to 3) of std_logic_vector(5 downto 0);
+    type prf_wdata_array_t is array (0 to 3) of std_logic_vector(31 downto 0);
+
     -- Execution unit status
     type eu_status_t is record
         busy            : std_logic;                        -- Unit is busy

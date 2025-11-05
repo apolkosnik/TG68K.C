@@ -25,30 +25,30 @@ entity TG68K_ReservationStation is
         -- Dispatch interface (from decode/rename)
         dispatch_valid  : in std_logic_vector(ISSUE_WIDTH-1 downto 0);
         dispatch_inst   : in decoded_inst_array_t;
-        dispatch_rob_idx: in array(0 to ISSUE_WIDTH-1) of integer range 0 to ROB_SIZE-1;
-        dispatch_src1_preg : in array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-        dispatch_src2_preg : in array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-        dispatch_dest_preg : in array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
+        dispatch_rob_idx: in rob_idx_array_t;
+        dispatch_src1_preg : in preg_array_t;
+        dispatch_src2_preg : in preg_array_t;
+        dispatch_dest_preg : in preg_array_t;
 
         rs_full         : out std_logic;
 
         -- Physical register file read
-        prf_read_addr   : out array(0 to ISSUE_WIDTH*2-1) of std_logic_vector(5 downto 0);
-        prf_read_data   : in array(0 to ISSUE_WIDTH*2-1) of std_logic_vector(31 downto 0);
+        prf_read_addr   : out prf_addr_array_t;
+        prf_read_data   : in prf_data_array_t;
 
         -- Result broadcast (from execution units - for forwarding)
         broadcast_valid : in std_logic_vector(EU_COUNT-1 downto 0);
-        broadcast_preg  : in array(0 to EU_COUNT-1) of std_logic_vector(5 downto 0);
-        broadcast_data  : in array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
+        broadcast_preg  : in eu_preg_array_t;
+        broadcast_data  : in eu_data_array_t;
 
         -- Issue to execution units
         issue_valid     : out std_logic_vector(EU_COUNT-1 downto 0);
-        issue_opcode    : out array(0 to EU_COUNT-1) of std_logic_vector(15 downto 0);
-        issue_pc        : out array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
-        issue_rob_idx   : out array(0 to EU_COUNT-1) of integer range 0 to ROB_SIZE-1;
-        issue_src1      : out array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
-        issue_src2      : out array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
-        issue_imm       : out array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
+        issue_opcode    : out eu_opcode_array_t;
+        issue_pc        : out eu_pc_array_t;
+        issue_rob_idx   : out eu_rob_idx_array_t;
+        issue_src1      : out eu_data_array_t;
+        issue_src2      : out eu_data_array_t;
+        issue_imm       : out eu_data_array_t;
 
         eu_busy         : in std_logic_vector(EU_COUNT-1 downto 0);
 

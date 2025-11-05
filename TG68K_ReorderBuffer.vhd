@@ -25,26 +25,26 @@ entity TG68K_ReorderBuffer is
         -- Dispatch interface (allocate ROB entries)
         dispatch_valid  : in std_logic_vector(ISSUE_WIDTH-1 downto 0);
         dispatch_inst   : in decoded_inst_array_t;
-        dispatch_dest_preg : in array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-        dispatch_old_preg  : in array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
+        dispatch_dest_preg : in preg_array_t;
+        dispatch_old_preg  : in preg_array_t;
 
         rob_full        : out std_logic;
         rob_tail        : out integer range 0 to ROB_SIZE-1;
-        alloc_rob_index : out array(0 to ISSUE_WIDTH-1) of integer range 0 to ROB_SIZE-1;
+        alloc_rob_index : out rob_idx_array_t;
 
         -- Completion interface (execution units write results)
         complete_valid  : in std_logic_vector(EU_COUNT-1 downto 0);
-        complete_rob_idx: in array(0 to EU_COUNT-1) of integer range 0 to ROB_SIZE-1;
-        complete_result : in array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
+        complete_rob_idx: in eu_rob_idx_array_t;
+        complete_result : in eu_data_array_t;
         complete_exception : in std_logic_vector(EU_COUNT-1 downto 0);
 
         -- Commit interface (retire instructions in order)
         commit_valid    : out std_logic_vector(ISSUE_WIDTH-1 downto 0);
-        commit_dest_reg : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(3 downto 0);
-        commit_dest_preg: out array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-        commit_old_preg : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-        commit_result   : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(31 downto 0);
-        commit_pc       : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(31 downto 0);
+        commit_dest_reg : out reg_array_t;
+        commit_dest_preg: out preg_array_t;
+        commit_old_preg : out preg_array_t;
+        commit_result   : out data_array_t;
+        commit_pc       : out pc_array_t;
 
         -- Branch misprediction
         branch_mispredict : out std_logic;

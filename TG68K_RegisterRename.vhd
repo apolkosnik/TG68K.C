@@ -27,17 +27,17 @@ entity TG68K_RegisterRename is
         decoded_inst    : in decoded_inst_array_t;
 
         -- Output: Physical register mappings
-        src1_preg       : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-        src2_preg       : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-        dest_preg       : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-        old_dest_preg   : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
+        src1_preg       : out preg_array_t;
+        src2_preg       : out preg_array_t;
+        dest_preg       : out preg_array_t;
+        old_dest_preg   : out preg_array_t;
 
         -- Free list management
         alloc_success   : out std_logic;  -- All registers allocated successfully
 
         -- Commit interface (frees old physical registers)
         commit_valid    : in std_logic_vector(ISSUE_WIDTH-1 downto 0);
-        commit_preg     : in array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
+        commit_preg     : in preg_array_t;
 
         -- Flush on branch misprediction
         flush           : in std_logic;
@@ -59,8 +59,7 @@ architecture rtl of TG68K_RegisterRename is
     signal rat_checkpoint : rename_table_t;
 
     -- Internal signals
-    type preg_array is array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-    signal alloc_pregs  : preg_array;
+    signal alloc_pregs  : preg_array_t;
     signal can_allocate : std_logic;
 
 begin

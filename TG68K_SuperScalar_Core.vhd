@@ -85,13 +85,13 @@ architecture rtl of TG68K_SuperScalar_Core is
             clk : in std_logic; reset : in std_logic; enable : in std_logic;
             decoded_valid : in std_logic_vector(ISSUE_WIDTH-1 downto 0);
             decoded_inst : in decoded_inst_array_t;
-            src1_preg : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-            src2_preg : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-            dest_preg : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-            old_dest_preg : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
+            src1_preg : out preg_array_t;
+            src2_preg : out preg_array_t;
+            dest_preg : out preg_array_t;
+            old_dest_preg : out preg_array_t;
             alloc_success : out std_logic;
             commit_valid : in std_logic_vector(ISSUE_WIDTH-1 downto 0);
-            commit_preg : in array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
+            commit_preg : in preg_array_t;
             flush : in std_logic; checkpoint_restore : in std_logic
         );
     end component;
@@ -101,20 +101,20 @@ architecture rtl of TG68K_SuperScalar_Core is
             clk : in std_logic; reset : in std_logic; enable : in std_logic;
             dispatch_valid : in std_logic_vector(ISSUE_WIDTH-1 downto 0);
             dispatch_inst : in decoded_inst_array_t;
-            dispatch_dest_preg : in array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-            dispatch_old_preg : in array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
+            dispatch_dest_preg : in preg_array_t;
+            dispatch_old_preg : in preg_array_t;
             rob_full : out std_logic; rob_tail : out integer range 0 to ROB_SIZE-1;
-            alloc_rob_index : out array(0 to ISSUE_WIDTH-1) of integer range 0 to ROB_SIZE-1;
+            alloc_rob_index : out rob_idx_array_t;
             complete_valid : in std_logic_vector(EU_COUNT-1 downto 0);
-            complete_rob_idx : in array(0 to EU_COUNT-1) of integer range 0 to ROB_SIZE-1;
-            complete_result : in array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
+            complete_rob_idx : in eu_rob_idx_array_t;
+            complete_result : in eu_data_array_t;
             complete_exception : in std_logic_vector(EU_COUNT-1 downto 0);
             commit_valid : out std_logic_vector(ISSUE_WIDTH-1 downto 0);
-            commit_dest_reg : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(3 downto 0);
-            commit_dest_preg : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-            commit_old_preg : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-            commit_result : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(31 downto 0);
-            commit_pc : out array(0 to ISSUE_WIDTH-1) of std_logic_vector(31 downto 0);
+            commit_dest_reg : out reg_array_t;
+            commit_dest_preg : out preg_array_t;
+            commit_old_preg : out preg_array_t;
+            commit_result : out data_array_t;
+            commit_pc : out pc_array_t;
             branch_mispredict : out std_logic; branch_target : out std_logic_vector(31 downto 0);
             flush_pipeline : out std_logic; exception_valid : out std_logic;
             exception_pc : out std_logic_vector(31 downto 0);
@@ -127,23 +127,23 @@ architecture rtl of TG68K_SuperScalar_Core is
             clk : in std_logic; reset : in std_logic; enable : in std_logic;
             dispatch_valid : in std_logic_vector(ISSUE_WIDTH-1 downto 0);
             dispatch_inst : in decoded_inst_array_t;
-            dispatch_rob_idx : in array(0 to ISSUE_WIDTH-1) of integer range 0 to ROB_SIZE-1;
-            dispatch_src1_preg : in array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-            dispatch_src2_preg : in array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-            dispatch_dest_preg : in array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
+            dispatch_rob_idx : in rob_idx_array_t;
+            dispatch_src1_preg : in preg_array_t;
+            dispatch_src2_preg : in preg_array_t;
+            dispatch_dest_preg : in preg_array_t;
             rs_full : out std_logic;
-            prf_read_addr : out array(0 to ISSUE_WIDTH*2-1) of std_logic_vector(5 downto 0);
-            prf_read_data : in array(0 to ISSUE_WIDTH*2-1) of std_logic_vector(31 downto 0);
+            prf_read_addr : out prf_addr_array_t;
+            prf_read_data : in prf_data_array_t;
             broadcast_valid : in std_logic_vector(EU_COUNT-1 downto 0);
-            broadcast_preg : in array(0 to EU_COUNT-1) of std_logic_vector(5 downto 0);
-            broadcast_data : in array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
+            broadcast_preg : in eu_preg_array_t;
+            broadcast_data : in eu_data_array_t;
             issue_valid : out std_logic_vector(EU_COUNT-1 downto 0);
-            issue_opcode : out array(0 to EU_COUNT-1) of std_logic_vector(15 downto 0);
-            issue_pc : out array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
-            issue_rob_idx : out array(0 to EU_COUNT-1) of integer range 0 to ROB_SIZE-1;
-            issue_src1 : out array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
-            issue_src2 : out array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
-            issue_imm : out array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
+            issue_opcode : out eu_opcode_array_t;
+            issue_pc : out eu_pc_array_t;
+            issue_rob_idx : out eu_rob_idx_array_t;
+            issue_src1 : out eu_data_array_t;
+            issue_src2 : out eu_data_array_t;
+            issue_imm : out eu_data_array_t;
             eu_busy : in std_logic_vector(EU_COUNT-1 downto 0);
             flush : in std_logic
         );
@@ -172,14 +172,14 @@ architecture rtl of TG68K_SuperScalar_Core is
     component TG68K_PhysicalRegFile is
         port(
             clk : in std_logic; reset : in std_logic; enable : in std_logic;
-            read_addr : in array(0 to 7) of std_logic_vector(5 downto 0);
-            read_data : out array(0 to 7) of std_logic_vector(31 downto 0);
+            read_addr : in prf_read_array_t;
+            read_data : out prf_rdata_array_t;
             write_enable : in std_logic_vector(3 downto 0);
-            write_addr : in array(0 to 3) of std_logic_vector(5 downto 0);
-            write_data : in array(0 to 3) of std_logic_vector(31 downto 0);
+            write_addr : in prf_write_array_t;
+            write_data : in prf_wdata_array_t;
             broadcast_enable : in std_logic_vector(EU_COUNT-1 downto 0);
-            broadcast_addr : in array(0 to EU_COUNT-1) of std_logic_vector(5 downto 0);
-            broadcast_data : in array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0)
+            broadcast_addr : in eu_preg_array_t;
+            broadcast_data : in eu_data_array_t
         );
     end component;
 
@@ -199,41 +199,45 @@ architecture rtl of TG68K_SuperScalar_Core is
     signal decoded_inst : decoded_inst_array_t;
 
     -- Register rename signals
-    signal src1_preg : array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-    signal src2_preg : array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-    signal dest_preg : array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-    signal old_dest_preg : array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
+    signal src1_preg : preg_array_t;
+    signal src2_preg : preg_array_t;
+    signal dest_preg : preg_array_t;
+    signal old_dest_preg : preg_array_t;
     signal rename_success : std_logic;
 
     -- ROB signals
     signal rob_full : std_logic;
-    signal alloc_rob_index : array(0 to ISSUE_WIDTH-1) of integer range 0 to ROB_SIZE-1;
+    signal alloc_rob_index : rob_idx_array_t;
     signal commit_valid : std_logic_vector(ISSUE_WIDTH-1 downto 0);
-    signal commit_dest_preg : array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-    signal commit_old_preg : array(0 to ISSUE_WIDTH-1) of std_logic_vector(5 downto 0);
-    signal commit_result : array(0 to ISSUE_WIDTH-1) of std_logic_vector(31 downto 0);
+    signal commit_dest_preg : preg_array_t;
+    signal commit_old_preg : preg_array_t;
+    signal commit_result : data_array_t;
 
     -- RS signals
     signal rs_full : std_logic;
     signal issue_valid : std_logic_vector(EU_COUNT-1 downto 0);
-    signal issue_opcode : array(0 to EU_COUNT-1) of std_logic_vector(15 downto 0);
-    signal issue_pc : array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
-    signal issue_rob_idx : array(0 to EU_COUNT-1) of integer range 0 to ROB_SIZE-1;
-    signal issue_src1 : array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
-    signal issue_src2 : array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
-    signal issue_imm : array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
+    signal issue_opcode : eu_opcode_array_t;
+    signal issue_pc : eu_pc_array_t;
+    signal issue_rob_idx : eu_rob_idx_array_t;
+    signal issue_src1 : eu_data_array_t;
+    signal issue_src2 : eu_data_array_t;
+    signal issue_imm : eu_data_array_t;
 
     -- EU signals
     signal eu_busy : std_logic_vector(EU_COUNT-1 downto 0);
     signal complete_valid : std_logic_vector(EU_COUNT-1 downto 0);
-    signal complete_rob_idx : array(0 to EU_COUNT-1) of integer range 0 to ROB_SIZE-1;
-    signal complete_result : array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
+    signal complete_rob_idx : eu_rob_idx_array_t;
+    signal complete_result : eu_data_array_t;
     signal complete_exception : std_logic_vector(EU_COUNT-1 downto 0);
 
     -- PRF signals
-    signal prf_read_addr : array(0 to 7) of std_logic_vector(5 downto 0);
-    signal prf_read_data : array(0 to 7) of std_logic_vector(31 downto 0);
+    signal prf_read_addr : prf_read_array_t;
+    signal prf_read_data : prf_rdata_array_t;
     signal prf_write_enable : std_logic_vector(3 downto 0);
+
+    -- Broadcast signals (map from commit to EU types)
+    signal broadcast_preg_eu : eu_preg_array_t;
+    signal broadcast_preg_prf : eu_preg_array_t;
 
     -- Memory interface (simplified)
     signal mem_data_64 : std_logic_vector(63 downto 0);
@@ -247,6 +251,15 @@ begin
 
     -- Stall conditions
     fetch_stall <= rob_full or rs_full or (not rename_success);
+
+    -- Map broadcast signals (commit preg to EU broadcast type)
+    process(commit_dest_preg)
+    begin
+        for i in 0 to EU_COUNT-1 loop
+            broadcast_preg_eu(i) <= commit_dest_preg(i);
+            broadcast_preg_prf(i) <= commit_dest_preg(i);
+        end loop;
+    end process;
 
     -- Memory interface (simplified - needs proper implementation)
     mem_data_64 <= data_in & data_in & data_in & data_in;
@@ -313,7 +326,7 @@ begin
             dispatch_src1_preg => src1_preg, dispatch_src2_preg => src2_preg,
             dispatch_dest_preg => dest_preg, rs_full => rs_full,
             prf_read_addr => prf_read_addr, prf_read_data => prf_read_data,
-            broadcast_valid => complete_valid, broadcast_preg => dest_preg(0 to EU_COUNT-1),
+            broadcast_valid => complete_valid, broadcast_preg => broadcast_preg_eu,
             broadcast_data => complete_result,
             issue_valid => issue_valid, issue_opcode => issue_opcode,
             issue_pc => issue_pc, issue_rob_idx => issue_rob_idx,
@@ -345,7 +358,7 @@ begin
             read_addr => prf_read_addr, read_data => prf_read_data,
             write_enable => prf_write_enable, write_addr => commit_dest_preg,
             write_data => commit_result,
-            broadcast_enable => complete_valid, broadcast_addr => dest_preg(0 to EU_COUNT-1),
+            broadcast_enable => complete_valid, broadcast_addr => broadcast_preg_prf,
             broadcast_data => complete_result
         );
 

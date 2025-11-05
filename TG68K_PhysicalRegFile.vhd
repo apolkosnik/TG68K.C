@@ -23,18 +23,18 @@ entity TG68K_PhysicalRegFile is
         enable          : in std_logic;
 
         -- Read ports (8 ports for 4 instructions * 2 sources)
-        read_addr       : in array(0 to 7) of std_logic_vector(5 downto 0);
-        read_data       : out array(0 to 7) of std_logic_vector(31 downto 0);
+        read_addr       : in prf_read_array_t;
+        read_data       : out prf_rdata_array_t;
 
         -- Write ports (4 ports for commit stage)
         write_enable    : in std_logic_vector(3 downto 0);
-        write_addr      : in array(0 to 3) of std_logic_vector(5 downto 0);
-        write_data      : in array(0 to 3) of std_logic_vector(31 downto 0);
+        write_addr      : in prf_write_array_t;
+        write_data      : in prf_wdata_array_t;
 
         -- Broadcast ports (4 ports for execution unit results - forwarding)
         broadcast_enable: in std_logic_vector(EU_COUNT-1 downto 0);
-        broadcast_addr  : in array(0 to EU_COUNT-1) of std_logic_vector(5 downto 0);
-        broadcast_data  : in array(0 to EU_COUNT-1) of std_logic_vector(31 downto 0)
+        broadcast_addr  : in eu_preg_array_t;
+        broadcast_data  : in eu_data_array_t
     );
 end TG68K_PhysicalRegFile;
 
