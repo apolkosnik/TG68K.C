@@ -151,27 +151,33 @@ This document describes the redesigned TG68K processor core as a **4-issue super
 ### ✅ Completed
 - Package definitions and types (`TG68K_SuperScalar_Pack.vhd`)
 - Instruction fetch unit (`TG68K_InstructionFetch.vhd`)
-- Parallel decode logic (`TG68K_Decode.vhd`)
+- Basic parallel decode logic (`TG68K_Decode.vhd`)
+- **Complete 68K instruction decoder** (`TG68K_Complete_Decoder.vhd`) - All addressing modes
 - Register renaming unit (`TG68K_RegisterRename.vhd`)
 - Reorder buffer (`TG68K_ReorderBuffer.vhd`)
 - Reservation stations (`TG68K_ReservationStation.vhd`)
 - Execution units (`TG68K_ExecutionUnit.vhd`)
 - Physical register file (`TG68K_PhysicalRegFile.vhd`)
 - Top-level integration (`TG68K_SuperScalar_Core.vhd`)
+- **2-level adaptive branch predictor** (`TG68K_BranchPredictor.vhd`)
+- **Load/Store Queue with memory disambiguation** (`TG68K_LoadStoreQueue.vhd`)
+- **Simple direct-mapped cache** (`TG68K_SimpleCache.vhd`)
+- **Performance counters** (`TG68K_PerfCounters.vhd`) with IPC calculation
+- **Basic testbench** (`TG68K_SuperScalar_tb.vhd`)
+- **VHDL syntax fixes** - All array types properly defined
 
 ### 🔧 TODO / Future Improvements
-- [ ] Full 68K instruction set support (currently simplified)
-- [ ] Memory subsystem integration (cache, TLB)
-- [ ] Branch prediction unit (static/dynamic)
-- [ ] Exception handling (precise exceptions)
-- [ ] Instruction cache integration
-- [ ] Data cache integration
-- [ ] Advanced branch prediction (2-level adaptive)
-- [ ] Speculative execution support
-- [ ] Load/store queue for memory disambiguation
+- [ ] Integration of all new components into top-level core
+- [ ] Exception handling refinement (precise exceptions)
+- [ ] Multi-level cache hierarchy (L1/L2)
+- [ ] TLB for virtual memory support
 - [ ] Hardware prefetching
-- [ ] Performance counters and profiling
-- [ ] Comprehensive testbench and verification
+- [ ] Out-of-order load/store execution
+- [ ] More sophisticated branch prediction (perceptron, TAGE)
+- [ ] Comprehensive test suite with real 68K programs
+- [ ] FPGA synthesis and timing optimization
+- [ ] Power optimization
+- [ ] Formal verification
 
 ## Usage
 
