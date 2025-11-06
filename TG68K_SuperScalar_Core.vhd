@@ -186,6 +186,8 @@ architecture rtl of TG68K_SuperScalar_Core is
     -- Internal signals
     signal reset : std_logic;
     signal pc_reg : std_logic_vector(31 downto 0);
+    signal pc_update : std_logic;
+    signal pc_new : std_logic_vector(31 downto 0);
 
     -- Fetch stage signals
     signal fetch_valid : std_logic_vector(ISSUE_WIDTH-1 downto 0);
@@ -193,6 +195,13 @@ architecture rtl of TG68K_SuperScalar_Core is
     signal fetch_inst : fetch_buffer_t;
     signal fetch_stall : std_logic;
     signal flush_pipeline : std_logic;
+
+    -- Branch/Exception signals
+    signal branch_mispredict : std_logic;
+    signal branch_target : std_logic_vector(31 downto 0);
+    signal exception_valid : std_logic;
+    signal exception_pc : std_logic_vector(31 downto 0);
+    signal exception_vector : std_logic_vector(7 downto 0);
 
     -- Decode stage signals
     signal decoded_valid : std_logic_vector(ISSUE_WIDTH-1 downto 0);
@@ -230,6 +239,14 @@ architecture rtl of TG68K_SuperScalar_Core is
     signal complete_result : eu_data_array_t;
     signal complete_exception : std_logic_vector(EU_COUNT-1 downto 0);
 
+    -- Memory interface signals (from LSU execution unit)
+    type mem_addr_array_t is array (0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
+    type mem_data_array_t is array (0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
+    signal eu_mem_addr : mem_addr_array_t;
+    signal eu_mem_write : std_logic_vector(EU_COUNT-1 downto 0);
+    signal eu_mem_read : std_logic_vector(EU_COUNT-1 downto 0);
+    signal eu_mem_data_out : mem_data_array_t;
+
     -- PRF signals
     signal prf_read_addr : prf_read_array_t;
     signal prf_read_data : prf_rdata_array_t;
@@ -252,6 +269,40 @@ begin
     -- Stall conditions
     fetch_stall <= rob_full or rs_full or (not rename_success);
 
+    -- PC update logic (handles branches, exceptions, and sequential fetch)
+    pc_update <= branch_mispredict or exception_valid or flush_pipeline;
+
+    process(branch_mispredict, exception_valid, branch_target, exception_vector, pc_reg)
+    begin
+        if exception_valid = '1' then
+            -- Exception: jump to exception vector (simplified - should use VBR)
+            pc_new <= x"000000" & exception_vector;
+        elsif branch_mispredict = '1' then
+            -- Branch misprediction: use correct branch target
+            pc_new <= branch_target;
+        else
+            -- Sequential: increment by 8 (4 instructions * 2 bytes)
+            pc_new <= std_logic_vector(unsigned(pc_reg) + 8);
+        end if;
+    end process;
+
+    -- PC register update
+    process(clk, reset)
+    begin
+        if reset = '1' then
+            pc_reg <= x"00000000";
+        elsif rising_edge(clk) then
+            if clkena_in = '1' then
+                if pc_update = '1' then
+                    pc_reg <= pc_new;
+                elsif fetch_stall = '0' then
+                    -- Sequential increment when fetching
+                    pc_reg <= std_logic_vector(unsigned(pc_reg) + 8);
+                end if;
+            end if;
+        end if;
+    end process;
+
     -- Map broadcast signals (commit preg to EU broadcast type)
     process(commit_dest_preg)
     begin
@@ -269,8 +320,8 @@ begin
     inst_fetch: TG68K_InstructionFetch
         port map(
             clk => clk, reset => reset, enable => clkena_in,
-            pc_in => pc_reg, pc_update => flush_pipeline,
-            pc_new => (others => '0'), fetch_stall => fetch_stall,
+            pc_in => pc_reg, pc_update => pc_update,
+            pc_new => pc_new, fetch_stall => fetch_stall,
             flush_pipeline => flush_pipeline,
             mem_addr => addr_out, mem_read => open,
             mem_data => mem_data_64, mem_ready => mem_ready,
@@ -312,9 +363,9 @@ begin
             commit_valid => commit_valid, commit_dest_reg => open,
             commit_dest_preg => commit_dest_preg, commit_old_preg => commit_old_preg,
             commit_result => commit_result, commit_pc => open,
-            branch_mispredict => open, branch_target => open,
-            flush_pipeline => flush_pipeline, exception_valid => open,
-            exception_pc => open, exception_vector => open
+            branch_mispredict => branch_mispredict, branch_target => branch_target,
+            flush_pipeline => flush_pipeline, exception_valid => exception_valid,
+            exception_pc => exception_pc, exception_vector => exception_vector
         );
 
     -- Instantiate Reservation Station
@@ -346,10 +397,40 @@ begin
                 issue_imm => issue_imm(i), eu_busy => eu_busy(i),
                 complete_valid => complete_valid(i), complete_rob_idx => complete_rob_idx(i),
                 complete_result => complete_result(i), complete_exception => complete_exception(i),
-                mem_addr => open, mem_write => open, mem_read => open,
-                mem_data_out => open, mem_data_in => (others => '0'), mem_ready => mem_ready
+                mem_addr => eu_mem_addr(i), mem_write => eu_mem_write(i), mem_read => eu_mem_read(i),
+                mem_data_out => eu_mem_data_out(i), mem_data_in => mem_data_in, mem_ready => mem_ready
             );
     end generate;
+
+    -- Memory interface mux (only LSU unit EU_LSU=2 should access memory)
+    process(eu_mem_addr, eu_mem_write, eu_mem_read, eu_mem_data_out)
+    begin
+        -- Default: no memory access
+        nWr <= '1';
+        nUDS <= '1';
+        nLDS <= '1';
+        data_write <= (others => '0');
+
+        -- LSU (EU_LSU = 2) drives memory interface
+        if eu_mem_write(EU_LSU) = '1' or eu_mem_read(EU_LSU) = '1' then
+            addr_out <= eu_mem_addr(EU_LSU);
+            data_write <= eu_mem_data_out(EU_LSU)(15 downto 0);
+
+            if eu_mem_write(EU_LSU) = '1' then
+                nWr <= '0';
+                nUDS <= '0';
+                nLDS <= '0';
+                busstate <= "11";  -- Write
+            else
+                nWr <= '1';
+                nUDS <= '0';
+                nLDS <= '0';
+                busstate <= "10";  -- Read
+            end if;
+        else
+            busstate <= "01";  -- Idle
+        end if;
+    end process;
 
     -- Instantiate Physical Register File
     inst_prf: TG68K_PhysicalRegFile
@@ -366,14 +447,9 @@ begin
     prf_write_enable <= commit_valid;
 
     -- Output assignments (simplified)
-    busstate <= "01";
-    nWr <= '1';
-    nUDS <= '1';
-    nLDS <= '1';
     longword <= '0';
     FC <= "000";
     clr_berr <= '0';
-    data_write <= (others => '0');
     regin_out <= (others => '0');
     CACR_out <= (others => '0');
     VBR_out <= (others => '0');
