@@ -37,6 +37,7 @@ entity TG68K_ReorderBuffer is
         complete_rob_idx: in eu_rob_idx_array_t;
         complete_result : in eu_data_array_t;
         complete_exception : in std_logic_vector(EU_COUNT-1 downto 0);
+        complete_dest_preg : out eu_preg_array_t;  -- Dest preg for broadcast
 
         -- Commit interface (retire instructions in order)
         commit_valid    : out std_logic_vector(ISSUE_WIDTH-1 downto 0);
@@ -79,6 +80,18 @@ begin
         else
             is_full <= '0';
         end if;
+    end process;
+
+    -- Provide dest_preg for completing instructions (for broadcast)
+    process(complete_valid, complete_rob_idx, rob)
+    begin
+        for i in 0 to EU_COUNT-1 loop
+            if complete_valid(i) = '1' then
+                complete_dest_preg(i) <= rob(complete_rob_idx(i)).dest_preg;
+            else
+                complete_dest_preg(i) <= (others => '0');
+            end if;
+        end loop;
     end process;
 
     -- Main ROB control logic

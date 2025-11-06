@@ -109,6 +109,7 @@ architecture rtl of TG68K_SuperScalar_Core is
             complete_rob_idx : in eu_rob_idx_array_t;
             complete_result : in eu_data_array_t;
             complete_exception : in std_logic_vector(EU_COUNT-1 downto 0);
+            complete_dest_preg : out eu_preg_array_t;
             commit_valid : out std_logic_vector(ISSUE_WIDTH-1 downto 0);
             commit_dest_reg : out reg_array_t;
             commit_dest_preg : out preg_array_t;
@@ -238,6 +239,7 @@ architecture rtl of TG68K_SuperScalar_Core is
     signal complete_rob_idx : eu_rob_idx_array_t;
     signal complete_result : eu_data_array_t;
     signal complete_exception : std_logic_vector(EU_COUNT-1 downto 0);
+    signal complete_dest_preg : eu_preg_array_t;  -- Dest preg from ROB for broadcast
 
     -- Memory interface signals (from LSU execution unit)
     type mem_addr_array_t is array (0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
@@ -251,14 +253,15 @@ architecture rtl of TG68K_SuperScalar_Core is
     signal prf_read_addr : prf_read_array_t;
     signal prf_read_data : prf_rdata_array_t;
     signal prf_write_enable : std_logic_vector(3 downto 0);
-
-    -- Broadcast signals (map from commit to EU types)
-    signal broadcast_preg_eu : eu_preg_array_t;
-    signal broadcast_preg_prf : eu_preg_array_t;
+    signal prf_write_addr : prf_write_array_t;
+    signal prf_write_data : prf_wdata_array_t;
 
     -- Memory interface (simplified)
     signal mem_data_64 : std_logic_vector(63 downto 0);
+    signal mem_data_32 : std_logic_vector(31 downto 0);  -- Extended to 32-bit for EUs
     signal mem_ready : std_logic;
+    signal if_mem_read : std_logic;  -- Instruction fetch memory read request
+    signal if_mem_addr : std_logic_vector(31 downto 0);  -- Instruction fetch address
 
 begin
 
@@ -303,17 +306,18 @@ begin
         end if;
     end process;
 
-    -- Map broadcast signals (commit preg to EU broadcast type)
-    process(commit_dest_preg)
+    -- Type conversion for PRF write interface
+    process(commit_dest_preg, commit_result)
     begin
-        for i in 0 to EU_COUNT-1 loop
-            broadcast_preg_eu(i) <= commit_dest_preg(i);
-            broadcast_preg_prf(i) <= commit_dest_preg(i);
+        for i in 0 to 3 loop
+            prf_write_addr(i) <= commit_dest_preg(i);
+            prf_write_data(i) <= commit_result(i);
         end loop;
     end process;
 
     -- Memory interface (simplified - needs proper implementation)
     mem_data_64 <= data_in & data_in & data_in & data_in;
+    mem_data_32 <= x"0000" & data_in;  -- Extend 16-bit to 32-bit
     mem_ready <= clkena_in;
 
     -- Instantiate Instruction Fetch
@@ -323,7 +327,7 @@ begin
             pc_in => pc_reg, pc_update => pc_update,
             pc_new => pc_new, fetch_stall => fetch_stall,
             flush_pipeline => flush_pipeline,
-            mem_addr => addr_out, mem_read => open,
+            mem_addr => if_mem_addr, mem_read => if_mem_read,
             mem_data => mem_data_64, mem_ready => mem_ready,
             fetch_valid => fetch_valid, fetch_pc => fetch_pc,
             fetch_inst => fetch_inst
@@ -360,6 +364,7 @@ begin
             alloc_rob_index => alloc_rob_index,
             complete_valid => complete_valid, complete_rob_idx => complete_rob_idx,
             complete_result => complete_result, complete_exception => complete_exception,
+            complete_dest_preg => complete_dest_preg,
             commit_valid => commit_valid, commit_dest_reg => open,
             commit_dest_preg => commit_dest_preg, commit_old_preg => commit_old_preg,
             commit_result => commit_result, commit_pc => open,
@@ -377,7 +382,7 @@ begin
             dispatch_src1_preg => src1_preg, dispatch_src2_preg => src2_preg,
             dispatch_dest_preg => dest_preg, rs_full => rs_full,
             prf_read_addr => prf_read_addr, prf_read_data => prf_read_data,
-            broadcast_valid => complete_valid, broadcast_preg => broadcast_preg_eu,
+            broadcast_valid => complete_valid, broadcast_preg => complete_dest_preg,
             broadcast_data => complete_result,
             issue_valid => issue_valid, issue_opcode => issue_opcode,
             issue_pc => issue_pc, issue_rob_idx => issue_rob_idx,
@@ -398,21 +403,24 @@ begin
                 complete_valid => complete_valid(i), complete_rob_idx => complete_rob_idx(i),
                 complete_result => complete_result(i), complete_exception => complete_exception(i),
                 mem_addr => eu_mem_addr(i), mem_write => eu_mem_write(i), mem_read => eu_mem_read(i),
-                mem_data_out => eu_mem_data_out(i), mem_data_in => mem_data_in, mem_ready => mem_ready
+                mem_data_out => eu_mem_data_out(i), mem_data_in => mem_data_32, mem_ready => mem_ready
             );
     end generate;
 
-    -- Memory interface mux (only LSU unit EU_LSU=2 should access memory)
-    process(eu_mem_addr, eu_mem_write, eu_mem_read, eu_mem_data_out)
+    -- Memory interface mux (mux between instruction fetch and LSU)
+    process(if_mem_addr, if_mem_read, eu_mem_addr, eu_mem_write, eu_mem_read, eu_mem_data_out)
     begin
         -- Default: no memory access
         nWr <= '1';
         nUDS <= '1';
         nLDS <= '1';
         data_write <= (others => '0');
+        addr_out <= (others => '0');
+        busstate <= "01";  -- Idle
 
-        -- LSU (EU_LSU = 2) drives memory interface
+        -- Priority: LSU takes precedence over instruction fetch
         if eu_mem_write(EU_LSU) = '1' or eu_mem_read(EU_LSU) = '1' then
+            -- LSU (EU_LSU = 2) drives memory interface
             addr_out <= eu_mem_addr(EU_LSU);
             data_write <= eu_mem_data_out(EU_LSU)(15 downto 0);
 
@@ -427,8 +435,13 @@ begin
                 nLDS <= '0';
                 busstate <= "10";  -- Read
             end if;
-        else
-            busstate <= "01";  -- Idle
+        elsif if_mem_read = '1' then
+            -- Instruction fetch drives memory interface
+            addr_out <= if_mem_addr;
+            nWr <= '1';
+            nUDS <= '0';
+            nLDS <= '0';
+            busstate <= "10";  -- Read
         end if;
     end process;
 
@@ -437,9 +450,9 @@ begin
         port map(
             clk => clk, reset => reset, enable => clkena_in,
             read_addr => prf_read_addr, read_data => prf_read_data,
-            write_enable => prf_write_enable, write_addr => commit_dest_preg,
-            write_data => commit_result,
-            broadcast_enable => complete_valid, broadcast_addr => broadcast_preg_prf,
+            write_enable => prf_write_enable, write_addr => prf_write_addr,
+            write_data => prf_write_data,
+            broadcast_enable => complete_valid, broadcast_addr => complete_dest_preg,
             broadcast_data => complete_result
         );
 
