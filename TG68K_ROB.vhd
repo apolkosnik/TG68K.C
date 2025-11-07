@@ -105,6 +105,7 @@ begin
                     rob(next_tail).dest_valid <= alloc_instr(i).dest_valid;
                     rob(next_tail).dest_arch_reg <= alloc_instr(i).dest_arch_reg;
                     rob(next_tail).dest_phys_reg <= alloc_instr(i).dest_phys_reg;
+                    rob(next_tail).old_phys_reg <= alloc_instr(i).old_phys_reg;  -- Save for freeing
                     rob(next_tail).is_branch <= alloc_instr(i).is_branch;
                     rob(next_tail).exception <= '0';
 
@@ -163,6 +164,7 @@ begin
                     commit_data(i).valid <= '1';
                     commit_data(i).arch_reg <= rob(next_head).dest_arch_reg;
                     commit_data(i).phys_reg <= rob(next_head).dest_phys_reg;
+                    commit_data(i).old_phys_reg <= rob(next_head).old_phys_reg;  -- For freeing
                     commit_data(i).data <= rob(next_head).result;
 
                     -- Free ROB entry

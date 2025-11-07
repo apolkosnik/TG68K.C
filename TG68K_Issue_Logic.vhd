@@ -54,6 +54,20 @@ architecture rtl of TG68K_Issue_Logic is
     type issue_select_t is array (0 to ISSUE_WIDTH-1) of integer range 0 to RS_SIZE*ISSUE_WIDTH-1;
     signal issue_select : issue_select_t;
 
+    -- Execution unit type mapping
+    -- Maps execution unit index to exec_unit_type
+    type exec_unit_map_t is array (0 to ISSUE_WIDTH-1) of exec_unit_type;
+    constant EXEC_UNIT_MAP : exec_unit_map_t := (
+        0 => EXEC_ALU,      -- Unit 0: ALU
+        1 => EXEC_ALU,      -- Unit 1: ALU
+        2 => EXEC_ALU,      -- Unit 2: ALU
+        3 => EXEC_ALU,      -- Unit 3: ALU
+        4 => EXEC_MUL,      -- Unit 4: Multiplier
+        5 => EXEC_DIV,      -- Unit 5: Divider
+        6 => EXEC_LDST,     -- Unit 6: Load/Store
+        7 => EXEC_BRANCH    -- Unit 7: Branch
+    );
+
 begin
 
     rs_full <= '1' when rs_count >= (RS_SIZE*ISSUE_WIDTH - ISSUE_WIDTH) else '0';
@@ -184,7 +198,10 @@ begin
                             if rs_valid(i) = '1' and
                                rs(i).issued = '0' and
                                rs(i).instruction.src1_ready = '1' and
-                               rs(i).instruction.src2_ready = '1' then
+                               rs(i).instruction.src2_ready = '1' and
+                               (rs(i).instruction.exec_unit = EXEC_UNIT_MAP(exec_unit_idx) or
+                                (rs(i).instruction.exec_unit = EXEC_SHIFT and EXEC_UNIT_MAP(exec_unit_idx) = EXEC_ALU)) then
+                                -- Note: EXEC_SHIFT instructions can execute on ALU units
 
                                 -- Issue this instruction
                                 issue_valid(exec_unit_idx) <= '1';

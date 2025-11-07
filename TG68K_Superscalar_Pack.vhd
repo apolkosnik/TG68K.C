@@ -79,6 +79,7 @@ package TG68K_Superscalar_Pack is
         dest_valid      : std_logic;
         dest_arch_reg   : integer range 0 to ARCH_REGS-1;
         dest_phys_reg   : integer range 0 to PHYS_REGS-1;
+        old_phys_reg    : integer range 0 to PHYS_REGS-1;   -- Previous mapping (for freeing)
 
         -- Immediate/displacement
         immediate       : std_logic_vector(31 downto 0);
@@ -116,6 +117,7 @@ package TG68K_Superscalar_Pack is
         dest_valid      : std_logic;
         dest_arch_reg   : integer range 0 to ARCH_REGS-1;
         dest_phys_reg   : integer range 0 to PHYS_REGS-1;
+        old_phys_reg    : integer range 0 to PHYS_REGS-1;   -- Previous mapping (for freeing)
         result          : std_logic_vector(31 downto 0);
 
         is_branch       : std_logic;
@@ -167,6 +169,7 @@ package TG68K_Superscalar_Pack is
         dest_phys_reg   : integer range 0 to PHYS_REGS-1;
         result          : std_logic_vector(31 downto 0);
         flags           : std_logic_vector(7 downto 0);     -- Condition codes
+        pc              : std_logic_vector(31 downto 0);    -- Instruction PC (for branch predictor)
 
         -- Branch resolution
         is_branch       : std_logic;

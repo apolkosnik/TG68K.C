@@ -237,7 +237,7 @@ begin
 
     -- Branch predictor update
     bp_update <= complete_valid(7) and complete_result(7).is_branch;
-    bp_update_pc <= complete_result(7).result when complete_valid(7) = '1' else (others => '0');
+    bp_update_pc <= complete_result(7).pc when complete_valid(7) = '1' else (others => '0');
     bp_update_taken <= complete_result(7).branch_taken;
     bp_update_target <= complete_result(7).branch_target;
 

@@ -206,6 +206,7 @@ begin
                     alu_result(i).dest_phys_reg <= issue_instr(i).dest_phys_reg;
                     alu_result(i).result <= result;
                     alu_result(i).flags <= flags;
+                    alu_result(i).pc <= issue_instr(i).pc;
                     alu_result(i).is_branch <= '0';
                     alu_result(i).branch_taken <= '0';
                     alu_result(i).branch_target <= (others => '0');
@@ -252,6 +253,7 @@ begin
                 mul_result.flags(2) <= '1' when mul_temp(31 downto 0) = x"00000000" else '0';  -- Z
                 mul_result.flags(3) <= mul_temp(31);  -- N
                 mul_result.flags(7 downto 4) <= (others => '0');
+                mul_result.pc <= issue_instr(4).pc;
                 mul_result.is_branch <= '0';
                 mul_result.branch_taken <= '0';
                 mul_result.branch_target <= (others => '0');
@@ -309,6 +311,7 @@ begin
                 div_result.rob_id <= issue_instr(5).rob_id;
                 div_result.dest_phys_reg <= issue_instr(5).dest_phys_reg;
                 div_result.flags <= (others => '0');
+                div_result.pc <= issue_instr(5).pc;
                 div_result.is_branch <= '0';
                 div_result.branch_taken <= '0';
                 div_result.branch_target <= (others => '0');
@@ -378,6 +381,7 @@ begin
                 branch_result.dest_phys_reg <= issue_instr(7).dest_phys_reg;
                 branch_result.result <= (others => '0');  -- Branches don't produce results
                 branch_result.flags <= (others => '0');
+                branch_result.pc <= issue_instr(7).pc;  -- Branch PC for predictor update
                 branch_result.is_branch <= '1';
                 branch_result.branch_taken <= condition_met;
                 branch_result.branch_target <= issue_instr(7).branch_target;
@@ -434,6 +438,7 @@ begin
                 ldst_result.dest_phys_reg <= issue_instr(6).dest_phys_reg;
                 ldst_result.result <= (others => '0');  -- Will be filled on completion
                 ldst_result.flags <= (others => '0');
+                ldst_result.pc <= issue_instr(6).pc;
                 ldst_result.is_branch <= '0';
                 ldst_result.branch_taken <= '0';
                 ldst_result.branch_target <= (others => '0');
