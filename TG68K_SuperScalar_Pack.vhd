@@ -141,10 +141,12 @@ package TG68K_SuperScalar_Pack is
     type eu_opcode_array_t is array (0 to EU_COUNT-1) of std_logic_vector(15 downto 0);
     type eu_pc_array_t is array (0 to EU_COUNT-1) of std_logic_vector(31 downto 0);
 
-    type prf_addr_array_t is array (0 to ISSUE_WIDTH*2-1) of std_logic_vector(5 downto 0);
-    type prf_data_array_t is array (0 to ISSUE_WIDTH*2-1) of std_logic_vector(31 downto 0);
+    -- Physical register file read/write port types (8 read ports, 4 write ports)
     type prf_read_array_t is array (0 to 7) of std_logic_vector(5 downto 0);
     type prf_rdata_array_t is array (0 to 7) of std_logic_vector(31 downto 0);
+    -- Deprecated aliases for compatibility
+    subtype prf_addr_array_t is prf_read_array_t;
+    subtype prf_data_array_t is prf_rdata_array_t;
     type prf_write_array_t is array (0 to 3) of std_logic_vector(5 downto 0);
     type prf_wdata_array_t is array (0 to 3) of std_logic_vector(31 downto 0);
 

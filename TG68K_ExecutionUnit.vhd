@@ -62,6 +62,8 @@ architecture rtl of TG68K_ExecutionUnit is
     signal src1_reg     : std_logic_vector(31 downto 0);
     signal src2_reg     : std_logic_vector(31 downto 0);
     signal imm_reg      : std_logic_vector(31 downto 0);
+    signal is_store     : std_logic;
+    signal mem_pending  : std_logic;
 
 begin
 
@@ -79,6 +81,10 @@ begin
             complete_exception <= '0';
             mem_write <= '0';
             mem_read <= '0';
+            mem_addr <= (others => '0');
+            mem_data_out <= (others => '0');
+            is_store <= '0';
+            mem_pending <= '0';
 
         elsif rising_edge(clk) then
 
@@ -95,11 +101,14 @@ begin
                     src2_reg <= issue_src2;
                     imm_reg <= issue_imm;
 
-                    -- Determine execution latency based on unit type
+                    -- Determine execution latency and memory operation type
                     if EU_TYPE = EU_ALU0 or EU_TYPE = EU_ALU1 then
                         cycles_left <= 1;  -- 1 cycle for simple ALU ops
                     elsif EU_TYPE = EU_LSU then
                         cycles_left <= 2;  -- 2+ cycles for memory ops
+                        -- Check opcode for load vs store (simplified)
+                        is_store <= issue_opcode(8);  -- Bit 8 often indicates store in 68K
+                        mem_pending <= '1';
                     elsif EU_TYPE = EU_BRANCH then
                         cycles_left <= 1;  -- 1 cycle for branches
                     else
@@ -147,8 +156,27 @@ begin
 
                         elsif EU_TYPE = EU_LSU then
                             -- Load/Store operations
-                            -- Simplified: just pass through address
-                            result_reg <= src1_reg;  -- Address calculation result
+                            -- Calculate effective address
+                            result_reg <= std_logic_vector(unsigned(src1_reg) + unsigned(imm_reg));
+
+                            -- Drive memory interface
+                            if mem_pending = '1' then
+                                mem_addr <= std_logic_vector(unsigned(src1_reg) + unsigned(imm_reg));
+                                if is_store = '1' then
+                                    mem_write <= '1';
+                                    mem_read <= '0';
+                                    mem_data_out <= src2_reg;  -- Store data from src2
+                                else
+                                    mem_write <= '0';
+                                    mem_read <= '1';
+                                    -- Wait for mem_ready, then capture data
+                                    if mem_ready = '1' then
+                                        result_reg <= mem_data_in;
+                                        mem_pending <= '0';
+                                        mem_read <= '0';
+                                    end if;
+                                end if;
+                            end if;
 
                         elsif EU_TYPE = EU_BRANCH then
                             -- Branch operations
@@ -163,6 +191,10 @@ begin
                         complete_result <= result_reg;
                         complete_exception <= '0';
                         busy <= '0';
+                        -- Clear memory interface
+                        mem_write <= '0';
+                        mem_read <= '0';
+                        mem_pending <= '0';
                     end if;
 
                 end if;

@@ -79,9 +79,10 @@ begin
 
     -- Main reservation station logic
     process(clk, reset)
+        type issued_array_t is array (0 to RS_SIZE-1) of std_logic;
         variable dispatch_count : integer;
-        variable issue_count : array(0 to EU_COUNT-1) of integer;
-        variable issued : array(0 to RS_SIZE-1) of std_logic;
+        variable issue_this_cycle : integer;
+        variable issued : issued_array_t;
     begin
         if reset = '1' then
             rs <= (others => RS_ENTRY_INIT);
@@ -94,6 +95,7 @@ begin
 
                 issue_valid <= (others => '0');
                 issued := (others => '0');
+                issue_this_cycle := 0;
 
                 -- Handle flush
                 if flush = '1' then
@@ -150,7 +152,7 @@ begin
                                     -- Free RS entry
                                     rs(i).valid <= '0';
                                     issued(i) := '1';
-                                    entry_count <= entry_count - 1;
+                                    issue_this_cycle := issue_this_cycle + 1;
 
                                     exit;  -- Only issue one instruction per EU
                                 end if;
@@ -191,13 +193,15 @@ begin
                                     rs(j).src2_value <= prf_read_data(i*2 + 1);
 
                                     dispatch_count := dispatch_count + 1;
-                                    entry_count <= entry_count + 1;
 
                                     exit;  -- Found free entry
                                 end if;
                             end loop;
                         end if;
                     end loop;
+
+                    -- Update entry count: add dispatches, subtract issues
+                    entry_count <= entry_count + dispatch_count - issue_this_cycle;
 
                 end if;
 

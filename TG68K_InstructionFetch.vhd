@@ -103,7 +103,7 @@ begin
                     fetching <= '0';
 
                     -- Increment PC by 8 bytes (4 instructions)
-                    if not fetch_stall = '1' then
+                    if fetch_stall = '0' then
                         pc_reg <= std_logic_vector(unsigned(pc_reg) + 8);
                     end if;
 
