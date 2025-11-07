@@ -194,10 +194,11 @@ begin
 
                         -- Check for branch misprediction
                         elsif rob(new_head).is_branch = '1' then
-                            -- Simplified: assume we check branch here
-                            -- Real implementation would compare predicted vs actual
-                            -- For now, assume no misprediction
-                            null;
+                            -- Simplified branch handling
+                            -- Real implementation would compare predicted vs actual branch target
+                            -- For now, just commit branches normally (assume prediction always correct)
+                            -- Future: Compare rob(new_head).branch_target with actual PC
+                            null;  -- No misprediction handling yet
                         end if;
 
                         -- Commit the instruction

@@ -186,11 +186,25 @@ begin
                                     rs(j).dest_preg <= dispatch_dest_preg(i);
 
                                     -- Read operands from physical register file
-                                    -- (simplified - actual implementation would track ready status)
-                                    rs(j).src1_ready <= '1';  -- Assume ready for now
-                                    rs(j).src2_ready <= '1';
-                                    rs(j).src1_value <= prf_read_data(i*2);
-                                    rs(j).src2_value <= prf_read_data(i*2 + 1);
+                                    -- Simplified ready tracking: assume architectural regs (0-15) always ready
+                                    -- Renamed regs (16+) might not be ready, but for simplification assume
+                                    -- they are ready since we read from PRF (which has forwarding)
+                                    -- Real impl would track per-register valid bits
+                                    if dispatch_inst(i).uses_src1 = '1' then
+                                        rs(j).src1_ready <= '1';  -- Simplified: assume PRF data is valid
+                                        rs(j).src1_value <= prf_read_data(i*2);
+                                    else
+                                        rs(j).src1_ready <= '1';  -- No source needed
+                                        rs(j).src1_value <= (others => '0');
+                                    end if;
+
+                                    if dispatch_inst(i).uses_src2 = '1' then
+                                        rs(j).src2_ready <= '1';  -- Simplified: assume PRF data is valid
+                                        rs(j).src2_value <= prf_read_data(i*2 + 1);
+                                    else
+                                        rs(j).src2_ready <= '1';  -- No source needed
+                                        rs(j).src2_value <= (others => '0');
+                                    end if;
 
                                     dispatch_count := dispatch_count + 1;
 

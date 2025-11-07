@@ -106,8 +106,11 @@ begin
                         cycles_left <= 1;  -- 1 cycle for simple ALU ops
                     elsif EU_TYPE = EU_LSU then
                         cycles_left <= 2;  -- 2+ cycles for memory ops
-                        -- Check opcode for load vs store (simplified)
-                        is_store <= issue_opcode(8);  -- Bit 8 often indicates store in 68K
+                        -- Detect store: For MOVE instructions (0001-0011 high nibble),
+                        -- bit 8 of destination mode indicates memory destination
+                        -- For other memory ops, use bit 8 as heuristic
+                        -- NOTE: This is simplified - real decoder should pass is_store flag
+                        is_store <= issue_opcode(8);
                         mem_pending <= '1';
                     elsif EU_TYPE = EU_BRANCH then
                         cycles_left <= 1;  -- 1 cycle for branches

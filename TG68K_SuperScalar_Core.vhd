@@ -315,8 +315,13 @@ begin
         end loop;
     end process;
 
-    -- Memory interface (simplified - needs proper implementation)
-    mem_data_64 <= data_in & data_in & data_in & data_in;
+    -- Memory interface (SIMPLIFIED - KNOWN LIMITATION)
+    -- ISSUE: SuperScalar fetch expects 64-bit (4 instruction) fetch, but external
+    --        interface only provides 16-bit data_in. This repeats the same value
+    --        4 times which is INCORRECT for real operation.
+    -- TODO: Implement proper multi-cycle fetch or change external interface to 64-bit
+    -- For basic simulation: testbench should provide sequential instruction words
+    mem_data_64 <= data_in & data_in & data_in & data_in;  -- WRONG: repeats same word!
     mem_data_32 <= x"0000" & data_in;  -- Extend 16-bit to 32-bit
     mem_ready <= clkena_in;
 
