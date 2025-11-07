@@ -372,8 +372,14 @@ begin
             for i in 0 to PHYS_REGS-1 loop
                 phys_reg_file(i).valid <= '1';
                 phys_reg_file(i).data <= (others => '0');
-                phys_reg_file(i).ready <= '1';
-                phys_reg_ready(i) <= '1';
+                -- Only architectural registers (0-15) are ready initially
+                if i < ARCH_REGS then
+                    phys_reg_file(i).ready <= '1';
+                    phys_reg_ready(i) <= '1';
+                else
+                    phys_reg_file(i).ready <= '0';
+                    phys_reg_ready(i) <= '0';
+                end if;
             end loop;
 
         elsif rising_edge(clk) then

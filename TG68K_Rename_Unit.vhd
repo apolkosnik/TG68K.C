@@ -78,14 +78,15 @@ begin
             end loop;
 
             -- Initialize free list: physical registers 16-95 are free
-            free_list_head <= 16;
-            free_list_tail <= 95;
+            -- Free list array indices are 0 to 79, holding values 16 to 95
+            free_list_head <= 0;
+            free_list_tail <= (PHYS_REGS - ARCH_REGS - 1);
             free_list_count <= PHYS_REGS - ARCH_REGS;
-            free_list_head_committed <= 16;
-            free_list_tail_committed <= 95;
+            free_list_head_committed <= 0;
+            free_list_tail_committed <= (PHYS_REGS - ARCH_REGS - 1);
             free_list_count_committed <= PHYS_REGS - ARCH_REGS;
-            for i in 16 to PHYS_REGS-1 loop
-                free_list(i - 16) <= i;
+            for i in 0 to (PHYS_REGS - ARCH_REGS - 1) loop
+                free_list(i) <= i + ARCH_REGS;  -- free_list(0)=16, free_list(1)=17, etc.
             end loop;
 
             rob_alloc_ptr <= 0;
@@ -154,15 +155,15 @@ begin
                             -- Save old physical register mapping (for freeing on commit)
                             rename_instr(i).old_phys_reg <= rename_map_next(decode_instr(i).dest_arch_reg);
 
-                            -- Get free physical register
-                            new_phys_reg := free_list(free_ptr);
+                            -- Get free physical register (use modulo to wrap within free list array)
+                            new_phys_reg := free_list(free_ptr mod (PHYS_REGS - ARCH_REGS));
                             rename_instr(i).dest_phys_reg <= new_phys_reg;
 
                             -- Update rename map
                             rename_map_next(decode_instr(i).dest_arch_reg) := new_phys_reg;
 
                             -- Advance free list pointer
-                            free_ptr := (free_ptr + 1) mod PHYS_REGS;
+                            free_ptr := (free_ptr + 1) mod (PHYS_REGS - ARCH_REGS);
                             alloc_count := alloc_count + 1;
                         end if;
 
@@ -193,13 +194,13 @@ begin
                     -- Update committed rename map
                     rename_map_committed(commit_arch_reg(i).arch_reg) <= commit_arch_reg(i).phys_reg;
 
-                    -- Add old physical register to free list
-                    free_list(free_list_tail) <= commit_arch_reg(i).old_phys_reg;
-                    free_list_tail <= (free_list_tail + 1) mod PHYS_REGS;
+                    -- Add old physical register to free list (use modulo for array indexing)
+                    free_list(free_list_tail mod (PHYS_REGS - ARCH_REGS)) <= commit_arch_reg(i).old_phys_reg;
+                    free_list_tail <= (free_list_tail + 1) mod (PHYS_REGS - ARCH_REGS);
                     free_list_count <= free_list_count + 1;
 
                     -- Update committed free list state
-                    free_list_tail_committed <= (free_list_tail + 1) mod PHYS_REGS;
+                    free_list_tail_committed <= (free_list_tail + 1) mod (PHYS_REGS - ARCH_REGS);
                     free_list_count_committed <= free_list_count + 1;
                 end if;
             end loop;
