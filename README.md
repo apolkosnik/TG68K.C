@@ -1,6 +1,6 @@
 # TG68K.C — `030_mmu` branch
 
-A switchable 68000 / 68010 / 68020 / **68030** soft core for FPGAs, derived from
+A **68030** soft core for FPGAs, derived from
 Tobias Gubener's TG68K.C. This branch adds a working **MC68030 mode** with a
 full MMU (PMMU) and on-chip caches, suitable for running 68030-class Amiga
 software (Workbench 3.x, `mmu.library`, `setpatch`, `Scout`, `SysInfo`,
@@ -48,7 +48,8 @@ and bus-fault level.
 ## What's new in `030_mmu`
 
 Everything below is additive on top of the upstream `master`/`030` branches.
-None of the existing 68000/010/020 behaviour is changed.
+The 68000/68010/68020 have been replaced with 68030, if you need them,
+just use the real tg68k.
 
 - **MC68030 mode (`CPU="10"`).** Full PMMU, on-chip cache control, 030 stack
   frames (Format `$0`, `$1`, `$2`, `$9`, `$A`, `$B`), 64-bit CRP/SRP, MOVES
@@ -630,7 +631,7 @@ Reference material used while building / debugging:
 - *MC68030 Designer's Handbook*.
 - WinUAE 030 PMMU implementation (cross-validation reference for ATC,
   walker, and stack-frame edge cases).
-- Real-hardware traces from a TF1230 / TF534 against DiagROM,
+- Traces against DiagROM,
   `mmu.library`, `Scout`, `VATestProgram`, AmigaOS 3.1 / 3.9.
 
 Released under the same LGPL-3.0+ licence as upstream TG68K.C.
