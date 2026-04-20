@@ -104,24 +104,24 @@ The cache is fronted by an external memory arbiter in `cpu_wrapper.v`
 
 ```mermaid
 flowchart LR
-    subgraph TG68K[TG68K.vhd  - bus wrapper]
+    subgraph TG68K["TG68K.vhd — bus wrapper"]
         direction TB
-        K[TG68KdotC_Kernel<br/>microcode + decoder]
-        A[TG68K_ALU<br/>add/sub/shift/MUL/DIV/BF]
-        P[TG68K_PMMU_030<br/>030 only]
-        C[TG68K_Cache_030<br/>030 only]
+        K["TG68KdotC_Kernel<br/>microcode + decoder"]
+        A["TG68K_ALU<br/>add/sub/shift/MUL/DIV/BF"]
+        P["TG68K_PMMU_030<br/>030 only"]
+        C["TG68K_Cache_030<br/>030 only"]
         K <--> A
-        K <-- pmmu_reg / pmmu_walker --> P
-        K -- CACR / CAAR / cache ops --> C
-        P -- addr_phys / cache_inhibit --> C
+        K <-- "pmmu_reg / pmmu_walker" --> P
+        K -- "CACR / CAAR / cache ops" --> C
+        P -- "addr_phys / cache_inhibit" --> C
     end
-    EXT[(External SDRAM /<br/>Chip / Slow / I/O bus)]
-    ARB[cpu_wrapper.v<br/>memory arbiter]
-    TG68K -- AS/UDS/LDS/RW/DTACK --> ARB
-    C -- fill_req / fill_data --> ARB
-    P -- mem_req / mem_we / mem_ack --> ARB
+    EXT[("External SDRAM /<br/>Chip / Slow / I/O bus")]
+    ARB["cpu_wrapper.v<br/>memory arbiter"]
+    TG68K -- "AS/UDS/LDS/RW/DTACK" --> ARB
+    C -- "fill_req / fill_data" --> ARB
+    P -- "mem_req / mem_we / mem_ack" --> ARB
     ARB <--> EXT
-    IPL[/IPL[2:0], BERR, RESET, HALT/] --> TG68K
+    IPL[/"IPL(2:0), BERR, RESET, HALT"/] --> TG68K
 ```
 
 ### PMMU internals
@@ -133,31 +133,31 @@ that drives a vector-2 bus error frame in the kernel.
 
 ```mermaid
 flowchart TB
-    subgraph PMMU[TG68K_PMMU_030]
+    subgraph PMMU["TG68K_PMMU_030"]
         direction TB
-        REQ[/translation request<br/>addr_log, fc, rw, is_insn/]
-        TT[Transparent Translation<br/>TT0 / TT1 match]
-        ATC[ATC<br/>22 entries<br/>pseudo-LRU<br/>cached buserr]
-        WALK[Page-table walker FSM<br/>W_ROOT - W_PTR1 - W_PTR2 - W_PTR3<br/>+ short / long format<br/>+ FCL early termination<br/>+ U-bit / M-bit writeback]
-        REGS[Register file<br/>TC / CRP / SRP<br/>TT0 / TT1 / MMUSR]
-        MUX[Output mux]
-        FLT[Fault status -<br/>vector 2 / vector 56]
+        REQ[/"translation request<br/>addr_log, fc, rw, is_insn"/]
+        TT["Transparent Translation<br/>TT0 / TT1 match"]
+        ATC["ATC<br/>22 entries<br/>pseudo-LRU<br/>cached buserr"]
+        WALK["Page-table walker FSM<br/>W_ROOT — W_PTR1 — W_PTR2 — W_PTR3<br/>+ short / long format<br/>+ FCL early termination<br/>+ U-bit / M-bit writeback"]
+        REGS["Register file<br/>TC / CRP / SRP<br/>TT0 / TT1 / MMUSR"]
+        MUX["Output mux"]
+        FLT["Fault status —<br/>vector 2 / vector 56"]
     end
     REQ --> TT
     REQ --> ATC
-    TT -- match --> MUX
-    ATC -- hit --> MUX
-    ATC -- miss --> WALK
+    TT -- "match" --> MUX
+    ATC -- "hit" --> MUX
+    ATC -- "miss" --> WALK
     REGS --> WALK
     REGS --> TT
-    WALK -- new entry --> ATC
-    WALK -- page descriptor --> MUX
-    WALK -- buserr / limit / WP / supervisor violation --> FLT
-    WALK -- mem_req / mem_we / mem_addr / mem_wdat --> MEM[(memory<br/>arbiter)]
-    MEM -- mem_rdat / mem_ack / mem_berr --> WALK
-    MUX --> OUT[/addr_phys, cache_inhibit, write_protect/]
-    FLT --> OUT2[/fault, fault_status, fault_addr, fault_fc, fault_rw, fault_is_insn/]
-    PMOVE[/PMOVE / PTEST / PFLUSH / PLOAD<br/>from kernel decode/] --> REGS
+    WALK -- "new entry" --> ATC
+    WALK -- "page descriptor" --> MUX
+    WALK -- "buserr / limit / WP / supervisor violation" --> FLT
+    WALK -- "mem_req / mem_we / mem_addr / mem_wdat" --> MEM[("memory<br/>arbiter")]
+    MEM -- "mem_rdat / mem_ack / mem_berr" --> WALK
+    MUX --> OUT[/"addr_phys, cache_inhibit, write_protect"/]
+    FLT --> OUT2[/"fault, fault_status, fault_addr, fault_fc, fault_rw, fault_is_insn"/]
+    PMOVE[/"PMOVE / PTEST / PFLUSH / PLOAD<br/>from kernel decode"/] --> REGS
     PMOVE --> WALK
 ```
 
@@ -287,12 +287,19 @@ the most material items:
 
 **MOVES / MOVEC**
 - `use_sfc_dfc` / `sfc_not_dfc` opcode bits route MOVES through SFC for
-  reads and DFC for writes. User-mode MOVES traps with vector 8.
+  reads and DFC for writes. User-mode MOVES traps as privilege
+  violation (vector 8).
 - MOVEC selector latch survives later immediates so back-to-back MOVECs
   with the same source register sequence correctly. MOVEC ISP/MSP
   aliasing into the active A7 is honored for RTE.
-- MOVEC to a register not on the whitelist traps as privilege violation
-  (matches real silicon — PMMU regs are PMOVE-only in this tree).
+- MOVEC accepts only the registers documented in MC68030 User's Manual
+  Table 4-2: SFC ($000), DFC ($001), USP ($800), VBR ($801), and
+  (68020+) CACR ($002), CAAR ($802), MSP ($803), ISP ($804). User-mode
+  MOVEC traps as privilege violation (vector 8); a supervisor-mode
+  MOVEC to any other register selector — including 040-style ITT0/DTT0
+  /URP/SRP encodings — traps as illegal instruction (vector 4). All
+  PMMU registers (TC, TT0, TT1, CRP, SRP, MMUSR) are PMOVE-only on
+  the 68030 by design and are not addressable via MOVEC.
 
 **Stack frames**
 - Format `$0` (uniform group 1), `$1` (throwaway), `$2` (group-2 6-word
@@ -598,10 +605,10 @@ the vector-56 frame is on the stack.
   software in our test corpus touches them. PMOVE to those selects
   hits the illegal-`PMOVE` trap (BUG #446) — change the decode if you
   need them for other targets.
-- **No 68040/060.** Branch is 030-specific.
-- **MOVEC to TC/TT0/TT1/MMUSR traps.** MC68030 spec lists these as
-  MOVEC-accessible too, but the kernel whitelist is PMOVE-only here.
-  Trivial to add if you need it (the PMMU register port is generic).
+- **No 68040/060.** Branch is 030-specific. (68040+ exposes its MMU
+  registers via MOVEC; on the 68030 the PMMU registers are
+  PMOVE-only — see the MOVEC notes above — and this branch follows
+  the 030 convention.)
 - **Cache size is fixed at 256 B per cache.** Real silicon has the same
   256 B; this is faithful to the part, but you can scale up by
   changing `CACHE_SIZE` / `LINE_SIZE` constants in
